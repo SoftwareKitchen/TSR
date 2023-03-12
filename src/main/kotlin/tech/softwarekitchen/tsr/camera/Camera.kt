@@ -11,7 +11,9 @@ import kotlin.math.max
 
 class Pixel(val depth: Double, val color: Color, val light: Double)
 
-class PixelBuffer{
+class PixelBuffer(
+    private val defaultColor: Color
+){
     private val data = ArrayList<Pixel>()
     fun reset(){
         data.clear()
@@ -39,16 +41,18 @@ class PixelBuffer{
     }
 
     fun merge(): Color{
-        var r = 0
-        var g = 0
-        var b = 0
+        var r = defaultColor.r
+        var g = defaultColor.g
+        var b = defaultColor.b
+        var a = defaultColor.a
         data.reversed().forEach{
-            val a = it.color.a
-            r = ((a * it.color.r * it.light).toInt() + (255 - a) * r) / 255
-            g = ((a * it.color.g * it.light).toInt() + (255 - a) * g) / 255
-            b = ((a * it.color.b * it.light).toInt() + (255 - a) * b) / 255
+            val curA = it.color.a
+            r = ((curA * it.color.r * it.light).toInt() + (255 - curA) * r) / 255
+            g = ((curA * it.color.g * it.light).toInt() + (255 - curA) * g) / 255
+            b = ((curA * it.color.b * it.light).toInt() + (255 - curA) * b) / 255
+            a = (curA * 255 + (255 - curA) * a) / 255
         }
-        return Color(r,g,b,255)
+        return Color(r,g,b,a)
     }
 }
 
@@ -57,14 +61,14 @@ class Camera(
     front: Vector3,
     up: Vector3,
     private val fov: Double,
-    private val imageSize: Vector2i
+    private val imageSize: Vector2i,
+    private val defaultColor: Color
 ) {
     private val front = front.norm()
     private val right = front.ortho(up).norm()
     private val up = front.ortho(right).invert().norm()
-    private val buffer = Array(imageSize.x){Array(imageSize.y){PixelBuffer()} }
     private val matrix = ProjectionMatrix(base,front,up,fov,imageSize)
-    private val imageBuffer = Array(imageSize.x){Array(imageSize.y){PixelBuffer()} }
+    private val imageBuffer = Array(imageSize.x){Array(imageSize.y){PixelBuffer(defaultColor)} }
 
     fun render(s: Scene): BufferedImage{
         imageBuffer.forEach{
