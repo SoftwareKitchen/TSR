@@ -69,7 +69,7 @@ class Camera(
     private val up = front.ortho(right).invert().norm()
     private val matrix = ProjectionMatrix(base,front,up,fov,imageSize)
     private val imageBuffer = Array(imageSize.x){Array(imageSize.y){PixelBuffer(defaultColor)} }
-
+    
     fun render(s: Scene): BufferedImage{
         imageBuffer.forEach{
             line ->

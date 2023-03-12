@@ -15,7 +15,7 @@ class ProjectionMatrix(
 ) {
     private val front = front.norm()
     private val right = front.ortho(up).norm()
-    private val up = front.ortho(right).norm()
+    private val up = front.ortho(right).invert().norm()
     private val maxEdge = max(imgSize.x,imgSize.y)
     private val degPerPixel = fov / maxEdge
     private val fovX = fov * imgSize.x / maxEdge
