@@ -3,6 +3,7 @@ package tech.softwarekitchen.tsr.camera
 import tech.softwarekitchen.common.vector.Vector2i
 import tech.softwarekitchen.common.vector.Vector3
 import tech.softwarekitchen.tsr.color.Color
+import tech.softwarekitchen.tsr.light.Light
 import tech.softwarekitchen.tsr.scene.Scene
 import java.awt.image.BufferedImage
 import java.awt.image.BufferedImage.TYPE_INT_ARGB
@@ -56,19 +57,23 @@ class PixelBuffer(
     }
 }
 
+data class CachedPixel(val x: Int, val y: Int, val data: Pixel)
+
 class Camera(
     private val base: Vector3,
     front: Vector3,
     up: Vector3,
     private val fov: Double,
     private val imageSize: Vector2i,
-    private val defaultColor: Color
+    private val defaultColor: Color,
+    private val light: List<Light>
 ) {
     private val front = front.norm()
     private val right = front.ortho(up).norm()
     private val up = front.ortho(right).invert().norm()
     private val matrix = ProjectionMatrix(base,front,up,fov,imageSize)
     private val imageBuffer = Array(imageSize.x){Array(imageSize.y){PixelBuffer(defaultColor)} }
+    private val renderCache = HashMap<String, List<CachedPixel>>()
     
     fun render(s: Scene): BufferedImage{
         imageBuffer.forEach{
@@ -78,20 +83,31 @@ class Camera(
             }
         }
 
-        val preparedObjects = s.objects.map{it.prepare(matrix)}.sortedWith{i1,i2 -> (i2.getMinimalDepth()-i1.getMinimalDepth()).toInt()}
+        val preparedObjects = s.objects.map{it.prepareCached(matrix)}.sortedWith{i1,i2 -> (i2.getMinimalDepth()-i1.getMinimalDepth()).toInt()}
 
+        println(preparedObjects.joinToString(","){it.uuid})
         preparedObjects.forEach {
-            val pixbound = it.getPixbound()
-            for(x in max(0,pixbound.topLeft.x) until min(imageSize.x, pixbound.bottomRight.x)){
-                for( y in max(0,pixbound.topLeft.y) until min(imageSize.y, pixbound.bottomRight.y)){
-                    val currentCutoff = imageBuffer[x][y].getCutoff()
-                    val res = it.process(matrix.getRayForScreenCoordinates(x,y),s.lights,currentCutoff)
-                    res?.let{
-                        if(currentCutoff < 0 || (res.depth > 0 && res.depth < currentCutoff)){
-                            imageBuffer[x][y].put(res)
+            val existing = renderCache[it.uuid]
+            if(existing != null){
+                existing.forEach{
+                    cp -> imageBuffer[cp.x][cp.y].put(cp.data)
+                }
+            }else{
+                val pixbound = it.getPixbound()
+                val cache = ArrayList<CachedPixel>()
+                for(x in max(0,pixbound.topLeft.x) until min(imageSize.x, pixbound.bottomRight.x)){
+                    for( y in max(0,pixbound.topLeft.y) until min(imageSize.y, pixbound.bottomRight.y)){
+                        //val currentCutoff = imageBuffer[x][y].getCutoff()
+                        val res = it.process(matrix.getRayForScreenCoordinates(x,y),light,-1.0)
+                        res?.let{
+                            if(res.depth > 0){
+                                cache.add(CachedPixel(x,y,it))
+                                imageBuffer[x][y].put(res)
+                            }
                         }
                     }
                 }
+                renderCache[it.uuid] = cache
             }
         }
 

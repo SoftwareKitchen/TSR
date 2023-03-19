@@ -4,6 +4,7 @@ import tech.softwarekitchen.common.vector.Vector2
 import tech.softwarekitchen.common.vector.Vector2i
 import tech.softwarekitchen.common.vector.Vector3
 import tech.softwarekitchen.tsr.vector.Ray
+import java.util.*
 import kotlin.math.max
 
 class ProjectionMatrix(
@@ -20,7 +21,7 @@ class ProjectionMatrix(
     private val degPerPixel = fov / maxEdge
     private val fovX = fov * imgSize.x / maxEdge
     private val fovY = fov * imgSize.y / maxEdge
-
+    val uuid = UUID.randomUUID().toString()
     fun radToPixels(rad: Double): Double{
         return rad * (180 / Math.PI) / degPerPixel
     }
