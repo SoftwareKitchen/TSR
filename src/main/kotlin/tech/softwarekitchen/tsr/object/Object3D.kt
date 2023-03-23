@@ -11,8 +11,6 @@ abstract class RenderableObject3D{
     abstract fun process(ray: Ray, light: List<Light>, cutoff: Double): Pixel?
     abstract fun getMinimalDepth(): Double
     abstract fun getPixbound(): Rectangle2D
-
-    val uuid = UUID.randomUUID().toString()
 }
 
 abstract class Object3D {

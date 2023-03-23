@@ -73,8 +73,7 @@ class Camera(
     private val up = front.ortho(right).invert().norm()
     private val matrix = ProjectionMatrix(base,front,up,fov,imageSize)
     private val imageBuffer = Array(imageSize.x){Array(imageSize.y){PixelBuffer(defaultColor)} }
-    private val renderCache = HashMap<String, List<CachedPixel>>()
-    
+
     fun render(s: Scene): BufferedImage{
         imageBuffer.forEach{
             line ->
@@ -85,29 +84,20 @@ class Camera(
 
         val preparedObjects = s.objects.map{it.prepareCached(matrix)}.sortedWith{i1,i2 -> (i2.getMinimalDepth()-i1.getMinimalDepth()).toInt()}
 
-        println(preparedObjects.joinToString(","){it.uuid})
         preparedObjects.forEach {
-            val existing = renderCache[it.uuid]
-            if(existing != null){
-                existing.forEach{
-                    cp -> imageBuffer[cp.x][cp.y].put(cp.data)
-                }
-            }else{
-                val pixbound = it.getPixbound()
-                val cache = ArrayList<CachedPixel>()
-                for(x in max(0,pixbound.topLeft.x) until min(imageSize.x, pixbound.bottomRight.x)){
-                    for( y in max(0,pixbound.topLeft.y) until min(imageSize.y, pixbound.bottomRight.y)){
-                        //val currentCutoff = imageBuffer[x][y].getCutoff()
-                        val res = it.process(matrix.getRayForScreenCoordinates(x,y),light,-1.0)
-                        res?.let{
-                            if(res.depth > 0){
-                                cache.add(CachedPixel(x,y,it))
-                                imageBuffer[x][y].put(res)
-                            }
+            val pixbound = it.getPixbound()
+            val cache = ArrayList<CachedPixel>()
+            for(x in max(0,pixbound.topLeft.x) until min(imageSize.x, pixbound.bottomRight.x)){
+                for( y in max(0,pixbound.topLeft.y) until min(imageSize.y, pixbound.bottomRight.y)){
+                    val currentCutoff = imageBuffer[x][y].getCutoff()
+                    val res = it.process(matrix.getRayForScreenCoordinates(x,y),light,currentCutoff)
+                    res?.let{
+                        if(res.depth > 0){
+                            cache.add(CachedPixel(x,y,it))
+                            imageBuffer[x][y].put(res)
                         }
                     }
                 }
-                renderCache[it.uuid] = cache
             }
         }
 
