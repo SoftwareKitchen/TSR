@@ -1,5 +1,6 @@
 package tech.softwarekitchen.tsr.`object`
 
+import tech.softwarekitchen.common.vector.Vector2
 import tech.softwarekitchen.common.vector.Vector2i
 import tech.softwarekitchen.common.vector.Vector3
 import tech.softwarekitchen.tsr.camera.Pixel
@@ -8,11 +9,14 @@ import tech.softwarekitchen.tsr.color.Color
 import tech.softwarekitchen.tsr.light.Light
 import tech.softwarekitchen.tsr.vector.Ray
 import tech.softwarekitchen.tsr.vector.Rectangle2D
+import java.awt.image.BufferedImage
+import java.awt.image.DataBufferByte
+import java.awt.image.DataBufferInt
 import java.lang.Double.max
 import java.lang.Double.min
 
-class OptimizedTriangle(
-    private val base: Triangle,
+class OptimizedTextureTriangle(
+    private val base: TexturedTriangle,
     private val vec12: Vector3,
     private val vec13: Vector3,
     private val vec23: Vector3,
@@ -39,6 +43,29 @@ class OptimizedTriangle(
 
     override fun getMinimalDepth(): Double {
         return _minimalDepth
+    }
+
+    private fun mapOnTexture(vec: Vector3): Color{
+        //FIXME! non-Rect
+        val v12Norm = vec12.norm()
+        val v12Ratio = vec.minus(base.p1).scalar(v12Norm) / vec12.length()
+        val v13Norm = vec13.norm()
+        val v13Ratio = vec.minus(base.p1).minus(v12Norm.scale(v12Ratio)).scalar(v13Norm) / vec13.length()
+
+        val texBase = base.texture.tp1
+        val tex12 = base.texture.tp2.minus(base.texture.tp1)
+        val tex13 = base.texture.tp3.minus(base.texture.tp1)
+
+        val texLoc = texBase.plus(tex12.scale(v12Ratio)).plus(tex13.scale(v13Ratio))
+        val texPix = Vector2i((texLoc.x * base.texture.img.width).toInt(), (texLoc.y * base.texture.img.height).toInt())
+
+        if(texPix.x < 0 || texPix.y < 0 || texPix.x >= base.texture.img.width || texPix.y >= base.texture.img.height){
+            return Color(0,0,0,0)
+        }
+
+        val rgb = base.texture.img.getRGB(texPix.x, texPix.y).toUInt()
+
+        return Color.fromRGB(rgb)
     }
 
     override fun process(ray: Ray, light: List<Light>, cutoff: Double): Pixel? {
@@ -71,15 +98,16 @@ class OptimizedTriangle(
         }
 
         val lightSum = min(light.map{max(it.getForVector(ortho), it.getForVector(ortho.invert()))}.sum(),1.0)
-        return Pixel(rayLambda, base.color,lightSum)
+        return Pixel(rayLambda, mapOnTexture(pos),lightSum)
     }
 }
 
-open class Triangle(
-    private val p1: Vector3,
-    private val p2: Vector3,
-    private val p3: Vector3,
-    val color: Color
+data class TextureSection(val img: BufferedImage, val tp1: Vector2, val tp2: Vector2, val tp3: Vector2)
+class TexturedTriangle(
+    val p1: Vector3,
+    val p2: Vector3,
+    val p3: Vector3,
+    val texture: TextureSection
 ): Object3D(){
     override fun prepare(matrix: ProjectionMatrix): RenderableObject3D {
         val vec12 = p2.minus(p1)
@@ -136,7 +164,7 @@ open class Triangle(
         val pixYMin = kotlin.math.min(kotlin.math.min(translatedP1.first.y,translatedP2.first.y),translatedP3.first.y)
         val pixYMax = kotlin.math.max(kotlin.math.max(translatedP1.first.y,translatedP2.first.y),translatedP3.first.y)
 
-        return OptimizedTriangle(
+        return OptimizedTextureTriangle(
             this,
             vec12,vec13,vec23,
             ortho,
@@ -148,5 +176,6 @@ open class Triangle(
             Rectangle2D(Vector2i(pixXMin.toInt(),pixYMin.toInt()),Vector2i(pixXMax.toInt(),pixYMax.toInt()))
         )
     }
+
 }
 
