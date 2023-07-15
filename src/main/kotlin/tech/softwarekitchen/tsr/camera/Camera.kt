@@ -82,7 +82,7 @@ class Camera(
             }
         }
 
-        val preparedObjects = s.objects.map{it.prepareCached(matrix)}.sortedWith{i1,i2 -> (i2.getMinimalDepth()-i1.getMinimalDepth()).toInt()}
+        val preparedObjects = s.objects.map{it.prepareCached(matrix)}.sortedBy{it.getMinimalDepth()}
 
         preparedObjects.forEach {
             val pixbound = it.getPixbound()

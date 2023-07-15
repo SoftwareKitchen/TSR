@@ -47,7 +47,7 @@ class OptimizedCylinder(
 
     init{
         val p1 = matrix.mapPoint(base.base)
-        val p2 = matrix.mapPoint(base.base.plus(base.vector))
+        val p2 = matrix.mapPoint(base.base.plus(base.vector.scale(base.length)))
 
         val angle1 = Math.atan2(base.radius, p1.second)
         val angle2 = Math.atan2(base.radius, p2.second)
@@ -84,7 +84,9 @@ class OptimizedCylinder(
             false -> lambda2
         }
 
-        val longit =  base.vector.scalar(ray.base.minus(base.base).plus(ray.vec.scale(lambda)))
+        val cylBaseToHitPoint = ray.base.minus(base.base).plus(ray.vec.scale(lambda))
+        val longit =  base.vector.norm().scalar(cylBaseToHitPoint)
+
         if(longit < 0 || longit > base.length){
             return null
         }
