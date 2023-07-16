@@ -1,5 +1,7 @@
 package tech.softwarekitchen.tsr.`object`
 
+import tech.softwarekitchen.common.matrix.Matrix22
+import tech.softwarekitchen.common.matrix.Matrix33
 import tech.softwarekitchen.common.vector.Vector2
 import tech.softwarekitchen.common.vector.Vector2i
 import tech.softwarekitchen.common.vector.Vector3
@@ -14,6 +16,9 @@ import java.awt.image.DataBufferByte
 import java.awt.image.DataBufferInt
 import java.lang.Double.max
 import java.lang.Double.min
+import java.lang.Math.pow
+import kotlin.math.acos
+import kotlin.math.sin
 
 class OptimizedTextureTriangle(
     private val base: TexturedTriangle,
@@ -46,17 +51,16 @@ class OptimizedTextureTriangle(
     }
 
     private fun mapOnTexture(vec: Vector3): Color{
-        //FIXME! non-Rect
-        val v12Norm = vec12.norm()
-        val v12Ratio = vec.minus(base.p1).scalar(v12Norm) / vec12.length()
-        val v13Norm = vec13.norm()
-        val v13Ratio = vec.minus(base.p1).minus(v12Norm.scale(v12Ratio)).scalar(v13Norm) / vec13.length()
+        val triMatrix = Matrix33.fromColumnVectors(vec12, vec13, vec12.ortho(vec13))
+        val invTriMatrix = triMatrix.invert()
+
+        val (phi, psi, _) = invTriMatrix.mul(vec.minus(base.p1)).expand()
 
         val texBase = base.texture.tp1
         val tex12 = base.texture.tp2.minus(base.texture.tp1)
         val tex13 = base.texture.tp3.minus(base.texture.tp1)
 
-        val texLoc = texBase.plus(tex12.scale(v12Ratio)).plus(tex13.scale(v13Ratio))
+        val texLoc = texBase.plus(tex12.scale(phi)).plus(tex13.scale(psi))
         val texPix = Vector2i((texLoc.x * base.texture.img.width).toInt(), (texLoc.y * base.texture.img.height).toInt())
 
         if(texPix.x < 0 || texPix.y < 0 || texPix.x >= base.texture.img.width || texPix.y >= base.texture.img.height){
@@ -178,4 +182,3 @@ class TexturedTriangle(
     }
 
 }
-

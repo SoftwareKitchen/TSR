@@ -53,7 +53,7 @@ class RotatingBillboard {
                 bottomLeft, bottomRight, topLeft, TextureSection(img, texBottomLeft, texBottomRight, texTopLeft)
             )
             val tri2 = TexturedTriangle(
-                topRight, bottomRight, topLeft, TextureSection(img, texTopRight, texBottomRight, texTopLeft)
+                topLeft, bottomRight, topRight, TextureSection(img, texTopLeft, texBottomRight, texTopRight)
             )
 
             listOf(tri1, tri2)
