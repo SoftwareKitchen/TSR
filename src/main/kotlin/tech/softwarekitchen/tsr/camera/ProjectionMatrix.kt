@@ -28,7 +28,7 @@ class ProjectionMatrix(
 
     fun getRayForScreenCoordinates(x: Int, y: Int): Ray {
         val upRatio = Math.tan(degPerPixel * (Math.PI / 180) * (imgSize.y / 2 - y))
-        val rightRatio = - Math.tan(degPerPixel * (Math.PI / 180) * (x - imgSize.x / 2))
+        val rightRatio = Math.tan(degPerPixel * (Math.PI / 180) * (x - imgSize.x / 2))
         val rayVec = front.plus(up.scale(upRatio)).plus(right.scale(rightRatio)).norm()
         return Ray(base,rayVec,Vector2i(x,y))
     }
